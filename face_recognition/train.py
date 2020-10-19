@@ -24,7 +24,15 @@ for class_name in os.listdir(f"{root_folder}/training_data"):
                 training_labels.append(class_index)
         class_index += 1
 
-print([class_names[i] for i in training_labels])
+class_names_fname = f"{root_folder}/class_names.txt"
+
+# clear the file
+with open(class_names_fname, "w") as _:
+    print("Clearing class names file...")
+
+with open(class_names_fname, "a") as class_names_file:
+    for name in class_names:
+        class_names_file.write(name + "\n")
 
 # shows all training images
 # for i in range(len(training_data)):

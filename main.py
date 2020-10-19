@@ -3,8 +3,16 @@ import numpy as np
 import cv2
 from skimage import transform
 
-class_names = ["Rehatbir Singh", "Keanu Reeves", "Navneet Kaur"]
-face_recog = keras.models.load_model("face_recognition/face_recog_model.h5")
+face_recog_folder = "face_recognition"
+
+class_names = []
+class_names_fname = f"{face_recog_folder}/class_names.txt"
+
+with open(class_names_fname, "r") as class_names_file:
+    for name in class_names_file.readlines():
+        class_names.append(name)
+
+face_recog = keras.models.load_model(f"{face_recog_folder}/face_recog_model.h5")
 
 cap = cv2.VideoCapture(0)
 face_classifier = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
