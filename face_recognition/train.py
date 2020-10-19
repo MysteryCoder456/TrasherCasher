@@ -46,6 +46,8 @@ model = keras.Sequential([
     keras.layers.Dense(256, activation="relu"),
     keras.layers.Dense(512, activation="relu"),
     keras.layers.Dense(256, activation="relu"),
+    keras.layers.Dense(512, activation="relu"),
+    keras.layers.Dense(256, activation="relu"),
     keras.layers.Dense(len(class_names), activation="softmax")
 ])
 model.compile(optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"])
