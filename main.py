@@ -1,39 +1,56 @@
+import os
 from tensorflow import keras
 import numpy as np
 import cv2
+import face_recognition
 from skimage import transform
 
+TOLERANCE = 0.5
+FRAME_THICKNESS = 2
+FONT_THICKNESS = 2
+MODEL = "hog"
+
 face_recog_folder = "face_recognition"
+known_faces = []
+known_names = []
 
-class_names = []
-class_names_fname = f"{face_recog_folder}/class_names.txt"
+print("loading known faces...")
+for face_name in os.listdir(f"{face_recog_folder}/known_faces"):
+    if face_name != ".DS_Store":
+        for filename in os.listdir(f"{face_recog_folder}/known_faces/{face_name}"):
+            if filename != ".DS_Store":
+                image = face_recognition.load_image_file(f"{face_recog_folder}/known_faces/{face_name}/{filename}")
+                encoding = face_recognition.face_encodings(image)[0]
+                known_faces.append(encoding)
+                known_names.append(face_name)
+print("finished loading known faces!")
 
-with open(class_names_fname, "r") as class_names_file:
-    for name in class_names_file.readlines():
-        class_names.append(name)
 
-face_recog = keras.models.load_model(f"{face_recog_folder}/face_recog_model.h5")
+def main():
+    print("starting camera...")
+    cap = cv2.VideoCapture(1)
 
-cap = cv2.VideoCapture(0)
-face_classifier = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
-face_classifier_alt = cv2.CascadeClassifier("haarcascade_frontalface_alt.xml")
+    while True:
+        _, cam_image = cap.read()
 
-while True:
-    _, frame = cap.read()
-    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    faces = face_classifier.detectMultiScale(frame, minSize=(120, 120), minNeighbors=4)
+        face_locations = face_recognition.face_locations(cam_image, model=MODEL)
+        face_encodings = face_recognition.face_encodings(cam_image, face_locations)
 
-    for (x, y, w, h) in faces:
-        cropped = frame[x:x + w, y:y + h]
-        cropped = transform.resize(frame, (200, 300))
-        prediction = face_recog.predict(np.expand_dims(cropped, 0))
-        print(class_names[np.argmax(prediction)])
-        cv2.rectangle(frame, (x, y), (x + w, y + h), 3, 3)
+        for f_enc, f_loc in zip(face_encodings, face_locations):
+            results = face_recognition.compare_faces(known_faces, f_enc, TOLERANCE)
 
-    cv2.imshow("Camera Footage", frame)
+            if True in results:
+                match = known_names[results.index(True)]
+                print(f"Match found: {match}")
 
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+        cv2.imshow("Camera Footage", cam_image)
 
-cap.release()
-cv2.destroyAllWindows()
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+
+if __name__ == "__main__":
+    main()
