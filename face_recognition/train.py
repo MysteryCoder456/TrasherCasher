@@ -10,12 +10,12 @@ root_folder = "face_recognition"
 training_data = []
 training_labels = []
 
-class_names = ["Rehatbir Singh", "Keanu Reeves", "Navneet Kaur"]
-
+class_names = []
 class_index = 0
 
 for class_name in os.listdir(f"{root_folder}/training_data"):
     if class_name != ".DS_Store":
+        class_names.append(class_name)
         for filename in os.listdir(f"{root_folder}/training_data/{class_name}"):
             if filename != ".DS_Store":
                 image = io.imread(f"{root_folder}/training_data/{class_name}/{filename}", as_gray=True)
@@ -24,7 +24,7 @@ for class_name in os.listdir(f"{root_folder}/training_data"):
                 training_labels.append(class_index)
         class_index += 1
 
-print(class_names)
+print([class_names[i] for i in training_labels])
 
 # shows all training images
 # for i in range(len(training_data)):
