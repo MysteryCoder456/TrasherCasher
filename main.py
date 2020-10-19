@@ -41,6 +41,11 @@ def main():
 
             if True in results:
                 match = known_names[results.index(True)]
+
+                top_left = (f_loc[3], f_loc[0])
+                bottom_right = (f_loc[1], f_loc[2])
+                cv2.rectangle(cam_image, top_left, bottom_right, (0, 255, 0), FRAME_THICKNESS)
+
                 print(f"Match found: {match}")
 
         cv2.imshow("Camera Footage", cam_image)
