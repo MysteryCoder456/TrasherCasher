@@ -28,7 +28,7 @@ print("finished loading known faces!")
 
 def main():
     print("starting camera...")
-    cap = cv2.VideoCapture(1)
+    cap = cv2.VideoCapture(0)
 
     while True:
         _, cam_image = cap.read()
