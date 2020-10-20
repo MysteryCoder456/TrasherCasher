@@ -7,7 +7,7 @@ from skimage import io, transform
 
 print("Using Tensorflow Version:", tf.__version__)
 
-RESIZE_RES = (400, 400)
+RESIZE_RES = (500, 500)
 
 class_names = ["clean", "trash"]
 
@@ -18,7 +18,7 @@ training_labels = []
 for class_name in os.listdir("trash_detector/training_data"):
     if class_name != ".DS_Store":
         for filename in os.listdir(f"trash_detector/training_data/{class_name}"):
-            if class_name != ".DS_Store":
+            if filename != ".DS_Store":
                 image = io.imread(f"trash_detector/training_data/{class_name}/{filename}", as_gray=True) / 255
                 resized = transform.resize(image, RESIZE_RES)
                 training_data.append(resized)
@@ -39,5 +39,5 @@ model = keras.Sequential([
 model.compile(optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"])
 
 # train and save model
-model.fit(np.array(training_data), np.array(training_labels), epochs=15, batch_size=4)
+model.fit(np.array(training_data), np.array(training_labels), epochs=15, batch_size=2)
 model.save("trash_detector/trash_detector_model.h5")
