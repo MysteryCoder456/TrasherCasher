@@ -142,3 +142,6 @@ cython_debug/
 
 # Keras Models
 *.h5
+
+# Stupid Folder Files
+.DS_Store
