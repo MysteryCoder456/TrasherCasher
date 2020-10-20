@@ -36,5 +36,5 @@ model = keras.Sequential([
 model.compile(optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"])
 
 # train model
-model.fit(np.array(training_data), np.array(training_labels), epochs=20, batch_size=4)
+model.fit(np.array(training_data), np.array(training_labels), epochs=15, batch_size=4)
 model.save("trash_detector/trash_detector_model.h5")
