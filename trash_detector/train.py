@@ -27,8 +27,8 @@ for class_name in os.listdir("trash_detector/training_data"):
 # create model
 model = keras.Sequential([
     keras.layers.Flatten(input_shape=RESIZE_RES),
-    keras.layers.Dense(512, activation="relu"),
-    keras.layers.Dense(512, activation="relu"),
+    keras.layers.Dense(256, activation="relu"),
+    keras.layers.Dense(128, activation="relu"),
     keras.layers.Dense(256, activation="relu"),
     keras.layers.Dense(2, activation="softmax")
 ])
