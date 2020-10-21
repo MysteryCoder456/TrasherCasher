@@ -33,8 +33,8 @@ def main():
     while True:
         _, cam_image = cap.read()
 
-        if INVERT_PIC:
-            cam_image = transform.rotate(cam_image, 180)
+        # if INVERT_PIC:
+        #     cam_image = transform.rotate(cam_image, 180)
 
         face_locations = face_recognition.face_locations(cam_image, model=MODEL)
         face_encodings = face_recognition.face_encodings(cam_image, face_locations)
