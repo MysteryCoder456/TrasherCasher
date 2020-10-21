@@ -1,5 +1,4 @@
 import os
-from tensorflow import keras
 import numpy as np
 import cv2
 import face_recognition
@@ -9,6 +8,7 @@ TOLERANCE = 0.5
 FRAME_THICKNESS = 2
 FONT_THICKNESS = 2
 MODEL = "hog"
+INVERT_PIC = True
 
 face_recog_folder = "face_recognition"
 known_faces = []
@@ -32,6 +32,9 @@ def main():
 
     while True:
         _, cam_image = cap.read()
+
+        if INVERT_PIC:
+            cam_image = transform.rotate(cam_image, 180)
 
         face_locations = face_recognition.face_locations(cam_image, model=MODEL)
         face_encodings = face_recognition.face_encodings(cam_image, face_locations)
