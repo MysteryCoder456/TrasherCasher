@@ -7,7 +7,7 @@ from skimage import io, transform
 
 print("Using Tensorflow Version:", tf.__version__)
 
-RESIZE_RES = (500, 500)
+RESIZE_RES = (600, 600)
 
 class_names = ["clean", "trash"]
 
@@ -39,5 +39,5 @@ model = keras.Sequential([
 model.compile(optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"])
 
 # train and save model
-model.fit(np.array(training_data), np.array(training_labels), epochs=15, batch_size=2)
+model.fit(np.array(training_data), np.array(training_labels), epochs=15, batch_size=1)
 model.save("trash_detector/trash_detector_model.h5")
