@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from skimage import io, transform
 
 class_names = ["clean", "trash"]
-RESIZE_RES = (700, 700)
+RESIZE_RES = (600, 600)
 model = keras.models.load_model("trash_detector/trash_detector_model.h5")
 
 # load testing data
