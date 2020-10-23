@@ -2,24 +2,31 @@ import os
 from tensorflow import keras
 import numpy as np
 import matplotlib.pyplot as plt
-from skimage import io, transform
+from PIL import Image, ImageOps
 
 class_names = ["clean", "trash"]
-RESIZE_RES = (600, 600)
+RESIZE_RES = (224, 224)
 model = keras.models.load_model("trash_detector/trash_detector_model.h5")
+folder_size = len(os.listdir("trash_detector/testing_data"))
+data = np.ndarray(shape=(folder_size - 1, 224, 224, 3), dtype=np.float32)
 
 # load testing data
-for filename in os.listdir(f"trash_detector/testing_data"):
+index = 0
+for filename in os.listdir("trash_detector/testing_data"):
     if filename != ".DS_Store":
-        image = io.imread(f"trash_detector/testing_data/{filename}", as_gray=True) / 255
-        resized = transform.resize(image, RESIZE_RES)
-        predictions = model.predict(np.expand_dims(resized, 0))
+        image = image = Image.open(f'trash_detector/testing_data/{filename}')
+        resized = ImageOps.fit(image, RESIZE_RES, Image.ANTIALIAS)
+        image_array = np.asarray(resized)
+        normalized_image_array = (image_array.astype(np.float32) / 127.0) - 1
+        data[index] = normalized_image_array
+        index += 1
 
-        # display image with prediction
-        plt.subplot(1, 2, 1)
-        plt.title(f"Prediciction Label: {class_names[np.argmax(predictions)]}")
-        plt.xlabel(f"Confidence: {max(predictions)}")
-        plt.imshow(image, cmap=plt.cm.binary)
-        plt.subplot(1, 2, 2)
-        plt.imshow(resized, cmap=plt.cm.binary)
-        plt.show()
+
+predictions = model.predict(data)
+
+for i in range(len(predictions)):
+    # display image with prediction
+    plt.title(f"Prediciction Label: {class_names[np.argmax(predictions[i])]}")
+    plt.xlabel(f"Confidence: {max(predictions[i])}")
+    plt.imshow(data[i])
+    plt.show()

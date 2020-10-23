@@ -1,8 +1,11 @@
 import os
+from tensorflow.keras.models import load_model
 import numpy as np
 import cv2
 import face_recognition
 from skimage import transform
+
+trash_detector = load_model("trash_detector/trash_detector_model.h5")
 
 TOLERANCE = 0.5
 FRAME_THICKNESS = 2
