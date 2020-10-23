@@ -3,15 +3,18 @@ from tensorflow.keras.models import load_model
 import numpy as np
 import cv2
 import face_recognition
+from PIL import Image, ImageOps
 from skimage import transform
 
 trash_detector = load_model("trash_detector/trash_detector_model.h5")
+class_names = ["clean", "trash"]
 
 TOLERANCE = 0.5
 FRAME_THICKNESS = 2
 FONT_THICKNESS = 2
 MODEL = "hog"
 INVERT_PIC = True
+RESIZE_RES = (224, 224)
 
 face_recog_folder = "face_recognition"
 known_faces = []
@@ -39,20 +42,30 @@ def main():
         # if INVERT_PIC:
         #     cam_image = transform.rotate(cam_image, 180)
 
-        face_locations = face_recognition.face_locations(cam_image, model=MODEL)
-        face_encodings = face_recognition.face_encodings(cam_image, face_locations)
+        data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32)
+        resized = transform.resize(cam_image, RESIZE_RES)  # ImageOps.fit(cam_image, RESIZE_RES, Image.ANTIALIAS)
+        image_array = np.asarray(resized)
+        normalized_image_array = (image_array.astype(np.float32) / 127.0) - 1
+        data[0] = normalized_image_array
 
-        for f_enc, f_loc in zip(face_encodings, face_locations):
-            results = face_recognition.compare_faces(known_faces, f_enc, TOLERANCE)
+        trash_detected = class_names[np.argmax(trash_detector.predict(data))]
+        print(trash_detected)
 
-            if True in results:
-                match = known_names[results.index(True)]
+        if trash_detected == "trash":
+            face_locations = face_recognition.face_locations(cam_image, model=MODEL)
+            face_encodings = face_recognition.face_encodings(cam_image, face_locations)
 
-                top_left = (f_loc[3], f_loc[0])
-                bottom_right = (f_loc[1], f_loc[2])
-                cv2.rectangle(cam_image, top_left, bottom_right, (0, 255, 0), FRAME_THICKNESS)
+            for f_enc, f_loc in zip(face_encodings, face_locations):
+                results = face_recognition.compare_faces(known_faces, f_enc, TOLERANCE)
 
-                print(f"Match found: {match}")
+                if True in results:
+                    match = known_names[results.index(True)]
+
+                    top_left = (f_loc[3], f_loc[0])
+                    bottom_right = (f_loc[1], f_loc[2])
+                    cv2.rectangle(cam_image, top_left, bottom_right, (0, 255, 0), FRAME_THICKNESS)
+
+                    print(f"Match found: {match}")
 
         cv2.imshow("Camera Footage", cam_image)
 
