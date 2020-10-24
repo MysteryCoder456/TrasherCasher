@@ -6,6 +6,8 @@ import face_recognition
 from PIL import Image, ImageOps
 from skimage import transform
 
+from emid import EmiratesID
+
 trash_detector = load_model("trash_detector/trash_detector_model.h5")
 class_names = ["clean", "trash"]
 
@@ -19,21 +21,31 @@ RESIZE_RES = (224, 224)
 face_recog_folder = "face_recognition"
 known_faces = []
 known_names = []
+emirates_id_list = []
 
-print("loading known faces...")
+print("Loading known faces...")
+
 for face_name in os.listdir(f"{face_recog_folder}/known_faces"):
     if face_name != ".DS_Store":
         for filename in os.listdir(f"{face_recog_folder}/known_faces/{face_name}"):
             if filename != ".DS_Store":
-                image = face_recognition.load_image_file(f"{face_recog_folder}/known_faces/{face_name}/{filename}")
-                encoding = face_recognition.face_encodings(image)[0]
-                known_faces.append(encoding)
-                known_names.append(face_name)
-print("finished loading known faces!")
+                if filename == "emid.txt":
+                    with open(f"{face_recog_folder}/known_faces/{face_name}/emid.txt", "r") as emid_file:
+                        id_number = int(emid_file.readlines()[0])
+                        emirates_id = EmiratesID(id_number, face_name)
+                        emirates_id_list.append(emirates_id)
+                        print(f"Created Emirates ID entry for {face_name} with ID number {id_number}!")
+                else:
+                    image = face_recognition.load_image_file(f"{face_recog_folder}/known_faces/{face_name}/{filename}")
+                    encoding = face_recognition.face_encodings(image)[0]
+                    known_faces.append(encoding)
+                    known_names.append(face_name)
+
+print("Finished loading known faces!")
 
 
 def main():
-    print("starting camera...")
+    print("Starting camera...")
     cap = cv2.VideoCapture(0)
 
     while True:
