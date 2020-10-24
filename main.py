@@ -54,8 +54,11 @@ def main():
         # if INVERT_PIC:
         #     cam_image = transform.rotate(cam_image, 180)
 
+        cv2.imwrite("temp.jpg", cam_image)
+
+        pred_image = Image.open("temp.jpg")
         data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32)
-        resized = transform.resize(cam_image, RESIZE_RES)  # ImageOps.fit(cam_image, RESIZE_RES, Image.ANTIALIAS)
+        resized = ImageOps.fit(pred_image, RESIZE_RES, Image.ANTIALIAS)
         image_array = np.asarray(resized)
         normalized_image_array = (image_array.astype(np.float32) / 127.0) - 1
         data[0] = normalized_image_array
