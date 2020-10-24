@@ -60,10 +60,11 @@ def main():
         normalized_image_array = (image_array.astype(np.float32) / 127.0) - 1
         data[0] = normalized_image_array
 
-        trash_detected = class_names[np.argmax(trash_detector.predict(data))]
+        trash_detected = trash_detector.predict(data)
+        trash_label = class_names[np.argmax(trash_detected)]
         print(trash_detected)
 
-        if trash_detected == "trash":
+        if trash_label == "trash":
             face_locations = face_recognition.face_locations(cam_image, model=MODEL)
             face_encodings = face_recognition.face_encodings(cam_image, face_locations)
 
@@ -76,6 +77,7 @@ def main():
                     top_left = (f_loc[3], f_loc[0])
                     bottom_right = (f_loc[1], f_loc[2])
                     cv2.rectangle(cam_image, top_left, bottom_right, (0, 255, 0), FRAME_THICKNESS)
+                    cv2.putText(cam_image, match, (top_left[0], bottom_right[1] + 25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), FONT_THICKNESS)
 
                     print(f"Match found: {match}")
 
