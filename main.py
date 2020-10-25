@@ -1,4 +1,5 @@
 import os
+import json
 from tensorflow.keras.models import load_model
 import numpy as np
 import cv2
@@ -15,7 +16,7 @@ TOLERANCE = 0.5
 FRAME_THICKNESS = 2
 FONT_THICKNESS = 2
 MODEL = "hog"
-INVERT_PIC = True
+INVERT_PIC = False
 RESIZE_RES = (224, 224)
 DISPLAY_IMAGE = True
 
@@ -23,6 +24,9 @@ face_recog_folder = "face_recognition"
 known_faces = []
 known_names = []
 emirates_id_list = []
+
+with open("fines.json", "r") as fines_file:
+    fines = json.load(fines_file)
 
 print("Loading known faces...")
 
@@ -33,7 +37,11 @@ for face_name in os.listdir(f"{face_recog_folder}/known_faces"):
                 if filename == "emid.txt":
                     with open(f"{face_recog_folder}/known_faces/{face_name}/emid.txt", "r") as emid_file:
                         id_number = int(emid_file.readlines()[0])
+
                         emirates_id = EmiratesID(id_number, face_name)
+                        if str(id_number) in fines.keys():
+                            emirates_id.fine_amount = fines.get(str(id_number))
+
                         emirates_id_list.append(emirates_id)
                         print(f"Created Emirates ID entry for {face_name} with ID number {id_number}!")
                 else:
@@ -45,16 +53,29 @@ for face_name in os.listdir(f"{face_recog_folder}/known_faces"):
 print("Finished loading known faces!")
 
 
+def exit_sequence(video_capture):
+    video_capture.release()
+    cv2.destroyAllWindows()
+
+    fines_dict = {}
+    with open("fines.json", "w") as fines_file:
+        for e in emirates_id_list:
+            fines_dict[e.id] = e.fine_amount
+
+        json.dump(fines_dict, fines_file)
+
+
 def main():
     print("Starting camera...")
     cap = cv2.VideoCapture(0)
+    previous_trash_label = "trash"
 
     try:
         while True:
             _, cam_image = cap.read()
 
-            # if INVERT_PIC:
-            #     cam_image = transform.rotate(cam_image, 180)
+            if INVERT_PIC:
+                cam_image = transform.rotate(cam_image, 180)
 
             cv2.imwrite("temp.jpg", cam_image)
 
@@ -67,11 +88,13 @@ def main():
 
             trash_detected = trash_detector.predict(data)
             trash_label = class_names[np.argmax(trash_detected)]
+
             if DISPLAY_IMAGE:
                 cv2.putText(cam_image, trash_label, (0, 25), cv2.FONT_HERSHEY_SIMPLEX, 1, 0, FONT_THICKNESS)
-            print(trash_label)
+            else:
+                print(trash_label)
 
-            if trash_label == "trash":
+            if trash_label == "trash" and previous_trash_label == "clean":
                 face_locations = face_recognition.face_locations(cam_image, model=MODEL)
                 face_encodings = face_recognition.face_encodings(cam_image, face_locations)
 
@@ -90,17 +113,22 @@ def main():
 
                         print(f"Match found: {match}")
 
+                        for e in emirates_id_list:
+                            if e.name == match:
+                                e.fine_amount += 3000  # Apply fine
+
             if DISPLAY_IMAGE:
                 cv2.imshow("Camera Footage", cam_image)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
-    except KeyboardInterrupt:
-        cap.release()
-        cv2.destroyAllWindows()
 
-    cap.release()
-    cv2.destroyAllWindows()
+            previous_trash_label = trash_label
+
+    except KeyboardInterrupt:
+        exit_sequence(cap)
+
+    exit_sequence(cap)
 
 
 if __name__ == "__main__":
