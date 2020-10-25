@@ -142,3 +142,6 @@ cython_debug/
 
 # Stupid Folder Files
 .DS_Store
+
+# Temporary Files
+temp.jpg
