@@ -90,7 +90,7 @@ def main():
             trash_label = class_names[np.argmax(trash_detected)]
 
             if DISPLAY_IMAGE:
-                cv2.putText(cam_image, trash_label, (0, 25), cv2.FONT_HERSHEY_SIMPLEX, 1, 0, FONT_THICKNESS)
+                cv2.putText(cam_image, trash_label, (0, 25), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), FONT_THICKNESS)
             else:
                 print(trash_label)
 
