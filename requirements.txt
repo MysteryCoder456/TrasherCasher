@@ -6,3 +6,5 @@ face_recognition
 Pillow
 pylint
 autopep8
+rpi.gpio
+twilio
