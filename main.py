@@ -166,8 +166,9 @@ def main():
                             print(f"Applied fine to {e.name}")
 
                 distance = get_distance(trig_pin, echo_pin)
+                dist_diff = distance - previous_distance
 
-                if abs(distance - previous_distance) > 3 and previous_distance != 0:
+                if abs(dist_diff) > 3 and previous_distance != 0:
                     print(f"Sending message to {match}...")
                     send_msg(match, match_phone)
                     GPIO.output(led_pin, GPIO.HIGH)
