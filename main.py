@@ -179,7 +179,7 @@ def main():
                     cv2.putText(cam_image, str(distance), (0, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), FONT_THICKNESS)
 
             previous_trash_label = trash_label
-            previous_distance= = distance
+            previous_distance = distance
 
             if DISPLAY_IMAGE:
                 cv2.imshow("Camera Footage", cam_image)
