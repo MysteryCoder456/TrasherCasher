@@ -114,7 +114,6 @@ def main():
     print("Starting camera...")
     cap = cv2.VideoCapture(0)
     previous_trash_label = "trash"
-    match = None
 
     try:
         while True:
@@ -157,26 +156,30 @@ def main():
                     else:
                         print(f"Match found: {match}")
 
-                match_phone = None
-                if trash_label == "trash" and previous_trash_label == "clean":
-                    for e in emirates_id_list:
-                        if e.name == match:
-                            e.fine_amount += 3000  # Apply fine
-                            match_phone = e.phone_number
-                            print(f"Applied fine to {e.name}")
+                    match_phone = None
+                    if trash_label == "trash" and previous_trash_label == "clean":
+                        for e in emirates_id_list:
+                            if e.name == match:
+                                e.fine_amount += 3000  # Apply fine
+                                match_phone = e.phone_number
+                                print(f"Applied fine to {e.name}")
 
-                distance = get_distance(trig_pin, echo_pin)
+                    distance = get_distance(trig_pin, echo_pin)
+                    dist_diff = abs(distance - previous_distance)
+                    print(dist_diff)
 
-                if abs(distance - previous_distance) > 3 and previous_distance != 0:
-                    print(f"Sending message to {match}...")
-                    send_msg(match, match_phone)
-                    GPIO.output(led_pin, GPIO.HIGH)
-                else:
-                    GPIO.output(led_pin, GPIO.LOW)
+                    if dist_diff > 3 and previous_distance != 0:
+                        print(f"Sending message to {match}...")
+                        send_msg(match, match_phone)
+                        print("Trash entered the bin!")
+                        GPIO.output(led_pin, GPIO.HIGH)
+                    else:
+                        GPIO.output(led_pin, GPIO.LOW)
 
-                cv2.putText(cam_image, str(distance), (0, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), FONT_THICKNESS)
+                    cv2.putText(cam_image, str(distance), (0, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), FONT_THICKNESS)
 
             previous_trash_label = trash_label
+            previous_distance= = distance
 
             if DISPLAY_IMAGE:
                 cv2.imshow("Camera Footage", cam_image)
