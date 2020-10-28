@@ -1,6 +1,7 @@
 import time
 import os
 import json
+import tflite_runtime
 from tensorflow.keras.models import load_model
 import numpy as np
 import cv2
@@ -23,6 +24,7 @@ MODEL = "hog"
 INVERT_PIC = False
 RESIZE_RES = (224, 224)
 DISPLAY_IMAGE = True
+CLIENT = Client()
 MSG_SENDER = "whatsapp:+14155238886"
 
 face_recog_folder = "face_recognition"
@@ -74,7 +76,7 @@ def exit_sequence(video_capture):
 def send_msg(name, phone_number):
     msg_receiver = "whatsapp:" + phone_number
     CLIENT.messages.create(
-        body=f"Dear {name}, thank you for throwing you trash it's the proper place!",
+        body=f"Dear {name}, thank you for throwing the trash it's the proper place!",
         from_=MSG_SENDER,
         to=msg_receiver
     )
@@ -117,6 +119,7 @@ def main():
 
     try:
         while True:
+            GPIO.output(led_pin, GPIO.LOW)
             _, cam_image = cap.read()
 
             if INVERT_PIC:
@@ -139,6 +142,8 @@ def main():
             else:
                 print(trash_label)
 
+            distance = get_distance(trig_pin, echo_pin)
+
             face_locations = face_recognition.face_locations(cam_image, model=MODEL)
             face_encodings = face_recognition.face_encodings(cam_image, face_locations)
 
@@ -157,24 +162,21 @@ def main():
                         print(f"Match found: {match}")
 
                     match_phone = None
-                    if trash_label == "trash" and previous_trash_label == "clean":
-                        for e in emirates_id_list:
-                            if e.name == match:
+                    for e in emirates_id_list:
+                        if e.name == match:
+                            if trash_label == "trash" and previous_trash_label == "clean":
                                 e.fine_amount += 3000  # Apply fine
-                                match_phone = e.phone_number
                                 print(f"Applied fine to {e.name}")
+                            match_phone = e.phone_number
+                            break
 
-                    distance = get_distance(trig_pin, echo_pin)
-                    dist_diff = abs(distance - previous_distance)
-                    print(dist_diff)
+                    dist_diff = previous_distance - distance
 
-                    if dist_diff > 3 and previous_distance != 0:
+                    if dist_diff > distance / 10 and previous_distance != 0:
                         print(f"Sending message to {match}...")
                         send_msg(match, match_phone)
                         print("Trash entered the bin!")
                         GPIO.output(led_pin, GPIO.HIGH)
-                    else:
-                        GPIO.output(led_pin, GPIO.LOW)
 
                     cv2.putText(cam_image, str(distance), (0, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), FONT_THICKNESS)
 
