@@ -32,6 +32,7 @@ CLIENT = Client()
 FINE_AMOUNT = 1000
 MSG_SENDER = "whatsapp:+14155238886"
 
+layer_names = net.getLayerNames()
 output_layers = [layer_names[i[0] - 1] for i in net.getUnconnectedOutLayers()]
 face_recog_folder = "face_recognition"
 known_faces = []
