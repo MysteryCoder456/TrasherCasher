@@ -13,11 +13,16 @@ from twilio.rest import Client
 
 from emid import EmiratesID
 
-trash_detector = load_model("trash_detector/trash_detector_model.h5")
-class_names = ["clean", "trash"]
+# trash_detector = load_model("trash_detector/trash_detector_model.h5")
+# class_names = ["clean", "trash"]
+
+# Load Yolo
+net = cv2.dnn.readNet("trash_detector/yolov3_training_last.weights", "trash_detector/yolov3_testing.cfg")
+class_names = ["trash"]
 
 TOLERANCE = 0.5
 FRAME_THICKNESS = 2
+FONT = cv2.FONT_HERSHEY_SIMPLEX
 FONT_THICKNESS = 2
 MODEL = "hog"
 INVERT_PIC = False
@@ -27,6 +32,7 @@ CLIENT = Client()
 FINE_AMOUNT = 1000
 MSG_SENDER = "whatsapp:+14155238886"
 
+output_layers = [layer_names[i[0] - 1] for i in net.getUnconnectedOutLayers()]
 face_recog_folder = "face_recognition"
 known_faces = []
 known_names = []
@@ -110,37 +116,59 @@ def main():
     GPIO.setup(echo_pin, GPIO.IN)
     GPIO.setup(trig_pin, GPIO.OUT)
     GPIO.setup(led_pin, GPIO.OUT)
-    GPIO.output(led_pin, GPIO.LOW)
     previous_distance = 0
 
     print("Starting camera...")
     cap = cv2.VideoCapture(0)
-    previous_trash_label = "trash"
 
     try:
         while True:
+            trash_present = False
             GPIO.output(led_pin, GPIO.LOW)
             _, cam_image = cap.read()
+            height, width, channels = cam_image.shape
 
             if INVERT_PIC:
                 cam_image = transform.rotate(cam_image, 180)
 
-            cv2.imwrite("temp.jpg", cam_image)
+            # Detecting trash objects
+            blob = cv2.dnn.blobFromImage(cam_image, 0.00392, (416, 416), (0, 0, 0), True, crop=False)
+            net.setInput(blob)
+            outs = net.forward(output_layers)
 
-            pred_image = Image.open("temp.jpg")
-            data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32)
-            resized = ImageOps.fit(pred_image, RESIZE_RES, Image.ANTIALIAS)
-            image_array = np.asarray(resized)
-            normalized_image_array = (image_array.astype(np.float32) / 127.0) - 1
-            data[0] = normalized_image_array
+            class_ids = []
+            confidences = []
+            boxes = []
+            for out in outs:
+                trash_present = True
+                for detection in out:
+                    scores = detection[5:]
+                    class_id = np.argmax(scores)
+                    confidence = scores[class_id]
+                    if confidence > 0.3:
+                        # Object detected
+                        center_x = int(detection[0] * width)
+                        center_y = int(detection[1] * height)
+                        w = int(detection[2] * width)
+                        h = int(detection[3] * height)
 
-            trash_detected = trash_detector.predict(data)
-            trash_label = class_names[np.argmax(trash_detected)]
+                        # Rectangle coordinates
+                        x = int(center_x - w / 2)
+                        y = int(center_y - h / 2)
+
+                        boxes.append([x, y, w, h])
+                        confidences.append(float(confidence))
+                        class_ids.append(class_id)
 
             if DISPLAY_IMAGE:
-                cv2.putText(cam_image, trash_label, (0, 25), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), FONT_THICKNESS)
-            else:
-                print(trash_label)
+                indexes = cv2.dnn.NMSBoxes(boxes, confidences, 0.5, 0.4)
+                for i in range(len(boxes)):
+                    if i in indexes:
+                        x, y, w, h = boxes[i]
+                        label = str(classes[class_ids[i]])
+                        color = (255, 0, 0)
+                        cv2.rectangle(img, (x, y), (x + w, y + h), color, FRAME_THICKNESS)
+                        cv2.putText(img, label, (x, y + 30), FONT, 1, color, FONT_THICKNESS)
 
             distance = get_distance(trig_pin, echo_pin)
 
@@ -157,7 +185,7 @@ def main():
                         top_left = (f_loc[3], f_loc[0])
                         bottom_right = (f_loc[1], f_loc[2])
                         cv2.rectangle(cam_image, top_left, bottom_right, (0, 255, 0), FRAME_THICKNESS)
-                        cv2.putText(cam_image, match, (top_left[0], bottom_right[1] + 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), FONT_THICKNESS)
+                        cv2.putText(cam_image, match, (top_left[0], bottom_right[1] + 30), FONT, 1, (0, 255, 0), FONT_THICKNESS)
                     else:
                         print(f"Match found: {match}")
 
@@ -165,10 +193,9 @@ def main():
                     for e in emirates_id_list:
                         if e.name == match:
                             match_phone = e.phone_number
-                            if trash_label == "trash" and previous_trash_label == "clean":
-                                e.fine_amount += FINE_AMOUNT  # Apply fine
-                                send_msg(e.phone_number, f"Dear {e.name}, you have been fined {FINE_AMOUNT} for littering in public.")
-                                print(f"Applied fine to {e.name}")
+                            # e.fine_amount += FINE_AMOUNT  # Apply fine
+                            # send_msg(e.phone_number, f"Dear {e.name}, you have been fined {FINE_AMOUNT} for littering in public.")
+                            # print(f"Applied fine to {e.name}")
                             break
 
                     dist_diff = previous_distance - distance
@@ -178,7 +205,8 @@ def main():
                         print("Trash entered the bin!")
                         GPIO.output(led_pin, GPIO.HIGH)
 
-                    cv2.putText(cam_image, str(distance), (0, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), FONT_THICKNESS)
+                    if DISPLAY_IMAGE:
+                        cv2.putText(cam_image, str(distance), (0, 50), FONT, 1, (255, 255, 255), FONT_THICKNESS)
 
             previous_trash_label = trash_label
             previous_distance = distance
