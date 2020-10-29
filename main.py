@@ -24,6 +24,7 @@ INVERT_PIC = False
 RESIZE_RES = (224, 224)
 DISPLAY_IMAGE = True
 CLIENT = Client()
+FINE_AMOUNT = 1000
 MSG_SENDER = "whatsapp:+14155238886"
 
 face_recog_folder = "face_recognition"
@@ -72,10 +73,10 @@ def exit_sequence(video_capture):
         json.dump(fines_dict, fines_file)
 
 
-def send_msg(name, phone_number):
+def send_msg(phone_number, message):
     msg_receiver = "whatsapp:" + phone_number
     CLIENT.messages.create(
-        body=f"Dear {name}, thank you for throwing the trash it's the proper place!",
+        body=message,
         from_=MSG_SENDER,
         to=msg_receiver
     )
@@ -163,17 +164,17 @@ def main():
                     match_phone = None
                     for e in emirates_id_list:
                         if e.name == match:
-                            if trash_label == "trash" and previous_trash_label == "clean":
-                                e.fine_amount += 3000  # Apply fine
-                                print(f"Applied fine to {e.name}")
                             match_phone = e.phone_number
+                            if trash_label == "trash" and previous_trash_label == "clean":
+                                e.fine_amount += FINE_AMOUNT  # Apply fine
+                                send_msg(e.phone_number, f"Dear {e.name}, you have been fined {FINE_AMOUNT} for littering in public.")
+                                print(f"Applied fine to {e.name}")
                             break
 
                     dist_diff = previous_distance - distance
 
                     if dist_diff > distance / 10 and previous_distance != 0:
-                        print(f"Sending message to {match}...")
-                        send_msg(match, match_phone)
+                        send_msg(match_phone, f"Dear {match}, thank you for throwing the trash in the proper place :)")
                         print("Trash entered the bin!")
                         GPIO.output(led_pin, GPIO.HIGH)
 
