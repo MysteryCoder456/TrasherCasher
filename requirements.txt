@@ -1,7 +1,4 @@
-tensorflow
 opencv-python
-scikit-image
-matplotlib
 face_recognition
 Pillow
 pylint
