@@ -1,7 +1,6 @@
 import time
 import os
 import json
-from tensorflow.keras.models import load_model
 import numpy as np
 import cv2
 import face_recognition
@@ -133,7 +132,7 @@ def main():
                 cam_image = transform.rotate(cam_image, 180)
 
             # Detecting trash objects
-            blob = cv2.dnn.blobFromImage(cam_image, 0.00392, (416, 416), (0, 0, 0), True, crop=False)
+            blob = cv2.dnn.blobFromImage(cam_image, 0.00392, (224, 224), (0, 0, 0), True, crop=False)
             net.setInput(blob)
             outs = net.forward(output_layers)
 
@@ -166,50 +165,50 @@ def main():
                 for i in range(len(boxes)):
                     if i in indexes:
                         x, y, w, h = boxes[i]
-                        label = str(classes[class_ids[i]])
+                        label = str(class_names[class_ids[i]])
                         color = (255, 0, 0)
-                        cv2.rectangle(img, (x, y), (x + w, y + h), color, FRAME_THICKNESS)
-                        cv2.putText(img, label, (x, y + 30), FONT, 1, color, FONT_THICKNESS)
+                        cv2.rectangle(cam_image, (x, y), (x + w, y + h), color, FRAME_THICKNESS)
+                        cv2.putText(cam_image, label, (x, y + 30), FONT, 1, color, FONT_THICKNESS)
 
             distance = get_distance(trig_pin, echo_pin)
+            dist_diff = previous_distance - distance
 
             face_locations = face_recognition.face_locations(cam_image, model=MODEL)
             face_encodings = face_recognition.face_encodings(cam_image, face_locations)
 
-            for f_enc, f_loc in zip(face_encodings, face_locations):
-                results = face_recognition.compare_faces(known_faces, f_enc, TOLERANCE)
+            if trash_present or (dist_diff > distance / 10 and previous_distance != 0):
+                for f_enc, f_loc in zip(face_encodings, face_locations):
+                    results = face_recognition.compare_faces(known_faces, f_enc, TOLERANCE)
 
-                if True in results:
-                    match = known_names[results.index(True)]
+                    if True in results:
+                        match = known_names[results.index(True)]
 
-                    if DISPLAY_IMAGE:
-                        top_left = (f_loc[3], f_loc[0])
-                        bottom_right = (f_loc[1], f_loc[2])
-                        cv2.rectangle(cam_image, top_left, bottom_right, (0, 255, 0), FRAME_THICKNESS)
-                        cv2.putText(cam_image, match, (top_left[0], bottom_right[1] + 30), FONT, 1, (0, 255, 0), FONT_THICKNESS)
-                    else:
-                        print(f"Match found: {match}")
+                        if DISPLAY_IMAGE:
+                            top_left = (f_loc[3], f_loc[0])
+                            bottom_right = (f_loc[1], f_loc[2])
+                            cv2.rectangle(cam_image, top_left, bottom_right, (0, 255, 0), FRAME_THICKNESS)
+                            cv2.putText(cam_image, match, (top_left[0], bottom_right[1] + 30), FONT, 1, (0, 255, 0), FONT_THICKNESS)
+                        else:
+                            print(f"Match found: {match}")
 
-                    match_phone = None
-                    for e in emirates_id_list:
-                        if e.name == match:
-                            match_phone = e.phone_number
-                            # e.fine_amount += FINE_AMOUNT  # Apply fine
-                            # send_msg(e.phone_number, f"Dear {e.name}, you have been fined {FINE_AMOUNT} for littering in public.")
-                            # print(f"Applied fine to {e.name}")
-                            break
+                        match_phone = None
+                        for e in emirates_id_list:
+                            if e.name == match:
+                                match_phone = e.phone_number
+                                if trash_present:
+                                    e.fine_amount += FINE_AMOUNT  # Apply fine
+                                    send_msg(e.phone_number, f"Dear {e.name}, you have been fined {FINE_AMOUNT} for littering in public.")
+                                    print(f"Applied fine to {e.name}")
+                                break
 
-                    dist_diff = previous_distance - distance
+                        if dist_diff > distance / 10:
+                            send_msg(match_phone, f"Dear {match}, thank you for throwing the trash in the proper place :)")
+                            print("Trash entered the bin!")
+                            GPIO.output(led_pin, GPIO.HIGH)
 
-                    if dist_diff > distance / 10 and previous_distance != 0:
-                        send_msg(match_phone, f"Dear {match}, thank you for throwing the trash in the proper place :)")
-                        print("Trash entered the bin!")
-                        GPIO.output(led_pin, GPIO.HIGH)
+                        if DISPLAY_IMAGE:
+                            cv2.putText(cam_image, str(distance), (0, 50), FONT, 1, (255, 255, 255), FONT_THICKNESS)
 
-                    if DISPLAY_IMAGE:
-                        cv2.putText(cam_image, str(distance), (0, 50), FONT, 1, (255, 255, 255), FONT_THICKNESS)
-
-            previous_trash_label = trash_label
             previous_distance = distance
 
             if DISPLAY_IMAGE:
