@@ -1,4 +1,5 @@
 opencv-python
+scikit-image
 face_recognition
 Pillow
 pylint
