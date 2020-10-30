@@ -126,13 +126,15 @@ def main():
             trash_present = False
             GPIO.output(led_pin, GPIO.LOW)
             _, cam_image = cap.read()
-            height, width, channels = cam_image.shape
 
             if INVERT_PIC:
                 cam_image = transform.rotate(cam_image, 180)
 
+            resized_img = cv2.resize(cam_image, None, fx=0.4, fy=0.4)
+            height, width, channels = cam_image.shape
+
             # Detecting trash objects
-            blob = cv2.dnn.blobFromImage(cam_image, 0.00392, (224, 224), (0, 0, 0), True, crop=False)
+            blob = cv2.dnn.blobFromImage(cam_image, 0.00392, (416, 416), (0, 0, 0), True, crop=False)
             net.setInput(blob)
             outs = net.forward(output_layers)
 
@@ -166,17 +168,16 @@ def main():
                     if i in indexes:
                         x, y, w, h = boxes[i]
                         label = str(class_names[class_ids[i]])
-                        color = (255, 0, 0)
+                        color = (0, 0, 255)
                         cv2.rectangle(cam_image, (x, y), (x + w, y + h), color, FRAME_THICKNESS)
-                        cv2.putText(cam_image, label, (x, y + 30), FONT, 1, color, FONT_THICKNESS)
+                        cv2.putText(cam_image, label, (x, y + h + 30), FONT, 1, color, FONT_THICKNESS)
 
             distance = get_distance(trig_pin, echo_pin)
             dist_diff = previous_distance - distance
 
-            face_locations = face_recognition.face_locations(cam_image, model=MODEL)
-            face_encodings = face_recognition.face_encodings(cam_image, face_locations)
-
             if trash_present or (dist_diff > distance / 10 and previous_distance != 0):
+                face_locations = face_recognition.face_locations(cam_image, model=MODEL)
+                face_encodings = face_recognition.face_encodings(cam_image, face_locations)
                 for f_enc, f_loc in zip(face_encodings, face_locations):
                     results = face_recognition.compare_faces(known_faces, f_enc, TOLERANCE)
 
