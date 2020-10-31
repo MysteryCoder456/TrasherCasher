@@ -1,16 +1,29 @@
 import time
 import datetime
 import os
+import sys
 import json
 import numpy as np
 import cv2
 import face_recognition
 from skimage import transform
 
-from RPi import GPIO
 from twilio.rest import Client
 
 from emid import EmiratesID
+
+# Options
+GPIO_ENABLED = True
+DISPLAY_IMAGE = True
+
+if "--no-gui" in sys.argv:
+    DISPLAY_IMAGE = False
+
+if "--no-gpio" in sys.argv:
+    GPIO_ENABLED = False
+
+if GPIO_ENABLED:
+    from RPi import GPIO
 
 # trash_detector = load_model("trash_detector/trash_detector_model.h5")
 # class_names = ["clean", "trash"]
@@ -26,7 +39,6 @@ FONT_THICKNESS = 2
 MODEL = "hog"
 INVERT_PIC = False
 RESIZE_RES = (224, 224)
-DISPLAY_IMAGE = True
 CLIENT = Client()
 FINE_AMOUNT = 1000
 MSG_SENDER = "whatsapp:+14155238886"
@@ -67,7 +79,8 @@ for face_name in os.listdir(f"{face_recog_folder}/known_faces"):
 
 
 def exit_sequence(video_capture):
-    GPIO.cleanup()
+    if GPIO_ENABLED:
+        GPIO.cleanup()
     video_capture.release()
     cv2.destroyAllWindows()
 
@@ -105,19 +118,22 @@ def get_distance(trigger, echo):
 
 
 def main():
-    print("Setting up GPIO pins...")
-    GPIO.setmode(GPIO.BCM)
-    GPIO.cleanup()
+    if GPIO_ENABLED:
+        print("Setting up GPIO pins...")
+        GPIO.setmode(GPIO.BCM)
+        GPIO.cleanup()
 
-    echo_pin = 23
-    trig_pin = 24
-    led_pin = 25
+        echo_pin = 23
+        trig_pin = 24
+        led_pin = 25
 
-    GPIO.setup(echo_pin, GPIO.IN)
-    GPIO.setup(trig_pin, GPIO.OUT)
-    GPIO.setup(led_pin, GPIO.OUT)
+        GPIO.setup(echo_pin, GPIO.IN)
+        GPIO.setup(trig_pin, GPIO.OUT)
+        GPIO.setup(led_pin, GPIO.OUT)
+
+        previous_trash_present = False
+
     previous_distance = 0
-    previous_trash_present = False
 
     print("Starting camera...")
     cap = cv2.VideoCapture(0)
@@ -125,7 +141,8 @@ def main():
     try:
         while True:
             trash_present = False
-            GPIO.output(led_pin, GPIO.LOW)
+            if GPIO_ENABLED:
+                GPIO.output(led_pin, GPIO.LOW)
             _, cam_image = cap.read()
 
             if INVERT_PIC:
@@ -147,7 +164,7 @@ def main():
                     scores = detection[5:]
                     class_id = np.argmax(scores)
                     confidence = scores[class_id]
-                    if confidence > 0.3:
+                    if confidence > 0.5:
                         trash_present = True
                         # Object detected
                         center_x = int(detection[0] * width)
@@ -173,10 +190,19 @@ def main():
                         cv2.rectangle(cam_image, (x, y), (x + w, y + h), color, FRAME_THICKNESS)
                         cv2.putText(cam_image, label, (x, y + h + 30), FONT, 1, color, FONT_THICKNESS)
 
-            distance = get_distance(trig_pin, echo_pin)
-            dist_diff = previous_distance - distance
+            if GPIO_ENABLED:
+                distance = get_distance(trig_pin, echo_pin)
+                dist_diff = previous_distance - distance
 
-            if trash_present or (dist_diff > distance / 10 and previous_distance != 0):
+            detect_faces = False
+
+            if trash_present:
+                detect_faces = True
+            elif GPIO_ENABLED:
+                if (dist_diff > distance / 10 and previous_distance != 0):
+                    detect_faces = True
+
+            if detect_faces:
                 face_locations = face_recognition.face_locations(cam_image, model=MODEL)
                 face_encodings = face_recognition.face_encodings(cam_image, face_locations)
                 for f_enc, f_loc in zip(face_encodings, face_locations):
@@ -200,7 +226,7 @@ def main():
                                 if trash_present and not previous_trash_present:  # if the person has thrown some trash
                                     # Save snapshot
                                     snap_datetime = datetime.datetime.now().strftime("%d.%m.%Y %H:%M")
-                                    cv2.imwrite(f"snapshots/{snap_filename}.jpg", cam_image)
+                                    cv2.imwrite(f"snapshots/{snap_datetime}.jpg", cam_image)
 
                                     # Apply fine and send message
                                     e.fine_amount += FINE_AMOUNT
@@ -208,17 +234,20 @@ def main():
                                     print(f"Applied fine to {e.name}")
                                 break
 
-                        if dist_diff > distance / 10:
-                            send_msg(match_phone, f"Dear {match}, thank you for throwing the trash in the proper place :)")
-                            print("Trash entered the bin!")
-                            GPIO.output(led_pin, GPIO.HIGH)
+                        if GPIO_ENABLED:
+                            if dist_diff > distance / 10:
+                                send_msg(match_phone, f"Dear {match}, thank you for throwing the trash in the proper place :)")
+                                print("Trash entered the bin!")
+                                GPIO.output(led_pin, GPIO.HIGH)
 
-                        if DISPLAY_IMAGE:
+                        if DISPLAY_IMAGE and GPIO_ENABLED:
                             cv2.putText(cam_image, str(distance), (0, 50), FONT, 1, (255, 255, 255), FONT_THICKNESS)
 
             # update "previous" variables
-            previous_distance = distance
-            previous_trash_present
+            if GPIO_ENABLED:
+                previous_distance = distance
+
+            previous_trash_present = trash_present
 
             if DISPLAY_IMAGE:
                 cv2.imshow("Camera Footage", cam_image)

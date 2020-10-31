@@ -3,5 +3,5 @@ scikit-image
 face_recognition
 pylint
 autopep8
-rpi.gpio
 twilio
+rpi.gpio # This is for Raspberry Pis only, if you get an error when installing this then use the "--no-gpio" flag when running the program
