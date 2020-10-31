@@ -1,10 +1,10 @@
 import time
+import datetime
 import os
 import json
 import numpy as np
 import cv2
 import face_recognition
-from PIL import Image, ImageOps
 from skimage import transform
 
 from RPi import GPIO
@@ -197,8 +197,13 @@ def main():
                         for e in emirates_id_list:
                             if e.name == match:
                                 match_phone = e.phone_number
-                                if trash_present and not previous_trash_present:
-                                    e.fine_amount += FINE_AMOUNT  # Apply fine
+                                if trash_present and not previous_trash_present:  # if the person has thrown some trash
+                                    # Save snapshot
+                                    snap_datetime = datetime.datetime.now().strftime("%d.%m.%Y %H:%M")
+                                    cv2.imwrite(f"snapshots/{snap_filename}.jpg", cam_image)
+
+                                    # Apply fine and send message
+                                    e.fine_amount += FINE_AMOUNT
                                     send_msg(e.phone_number, f"Dear {e.name}, you have been fined {FINE_AMOUNT} for littering in public.")
                                     print(f"Applied fine to {e.name}")
                                 break

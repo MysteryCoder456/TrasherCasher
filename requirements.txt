@@ -1,7 +1,6 @@
 opencv-python
 scikit-image
 face_recognition
-Pillow
 pylint
 autopep8
 rpi.gpio
