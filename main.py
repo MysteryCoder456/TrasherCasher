@@ -117,6 +117,7 @@ def main():
     GPIO.setup(trig_pin, GPIO.OUT)
     GPIO.setup(led_pin, GPIO.OUT)
     previous_distance = 0
+    previous_trash_present = False
 
     print("Starting camera...")
     cap = cv2.VideoCapture(0)
@@ -142,12 +143,12 @@ def main():
             confidences = []
             boxes = []
             for out in outs:
-                trash_present = True
                 for detection in out:
                     scores = detection[5:]
                     class_id = np.argmax(scores)
                     confidence = scores[class_id]
                     if confidence > 0.3:
+                        trash_present = True
                         # Object detected
                         center_x = int(detection[0] * width)
                         center_y = int(detection[1] * height)
@@ -196,7 +197,7 @@ def main():
                         for e in emirates_id_list:
                             if e.name == match:
                                 match_phone = e.phone_number
-                                if trash_present:
+                                if trash_present and not previous_trash_present:
                                     e.fine_amount += FINE_AMOUNT  # Apply fine
                                     send_msg(e.phone_number, f"Dear {e.name}, you have been fined {FINE_AMOUNT} for littering in public.")
                                     print(f"Applied fine to {e.name}")
@@ -210,7 +211,9 @@ def main():
                         if DISPLAY_IMAGE:
                             cv2.putText(cam_image, str(distance), (0, 50), FONT, 1, (255, 255, 255), FONT_THICKNESS)
 
+            # update "previous" variables
             previous_distance = distance
+            previous_trash_present
 
             if DISPLAY_IMAGE:
                 cv2.imshow("Camera Footage", cam_image)
