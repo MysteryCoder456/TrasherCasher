@@ -52,9 +52,9 @@ for filename in os.listdir("trash_detector/testing_data"):
             if i in indexes:
                 x, y, w, h = boxes[i]
                 label = str(classes[class_ids[i]])
-                color = (255, 0, 0)
+                color = (0, 0, 255)
                 cv2.rectangle(img, (x, y), (x + w, y + h), color, 2)
-                cv2.putText(img, label, (x, y + 30), font, 3, color, 2)
+                cv2.putText(img, label, (x, y + h + 30), font, 1, color, 2)
 
         cv2.imshow("Image", img)
         key = cv2.waitKey()
